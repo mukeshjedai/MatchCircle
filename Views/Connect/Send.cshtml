@@ -1,0 +1,165 @@
+@{
+    ViewData["Title"] = "Send Connect Request";
+    var targetUser = ViewBag.TargetUser as testapp1.Models.User;
+    var targetProfile = ViewBag.TargetProfile as testapp1.Models.UserProfile;
+    var existingRequest = ViewBag.ExistingRequest as testapp1.Models.UserInteraction;
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Send Connect Request
+                    </h4>
+                </div>
+                <div class="card-body">
+                    @if (targetUser != null && targetProfile != null)
+                    {
+                        <!-- User Info -->
+                        <div class="mb-4 p-3 bg-light rounded">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    @{
+                                        var primaryPhoto = ViewBag.PrimaryPhoto as testapp1.Models.ProfilePhoto;
+                                    }
+                                    @if (primaryPhoto != null)
+                                    {
+                                        <img src="@primaryPhoto.ImageUrl?v=@primaryPhoto.Id" alt="@targetProfile.FullName" 
+                                             class="rounded-circle" 
+                                             style="width: 80px; height: 80px; object-fit: cover;"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" 
+                                             style="width: 80px; height: 80px; display: none;">
+                                            <i class="fas fa-user fa-2x text-white"></i>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" 
+                                             style="width: 80px; height: 80px;">
+                                            <i class="fas fa-user fa-2x text-white"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">@targetProfile.FullName</h5>
+                                    <p class="text-muted mb-0">
+                                        @{
+                                            var age = DateTime.UtcNow.Year - targetProfile.DateOfBirth.Year;
+                                            if (DateTime.UtcNow.DayOfYear < targetProfile.DateOfBirth.DayOfYear) age--;
+                                        }
+                                        @age years, @targetProfile.Gender
+                                    </p>
+                                    @if (!string.IsNullOrEmpty(targetProfile.City))
+                                    {
+                                        <p class="text-muted mb-0"><small>@targetProfile.City</small></p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (existingRequest != null && existingRequest.Status == "pending")
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                You have already sent a connect request to this user.
+                                @if (!string.IsNullOrEmpty(existingRequest.Message))
+                                {
+                                    <div class="mt-2">
+                                        <strong>Your message:</strong>
+                                        <p class="mb-0">@existingRequest.Message</p>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Connect Request Form -->
+                            <form id="connectForm">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" id="userId" value="@targetUser.Id" />
+                                
+                                <div class="mb-3">
+                                    <label for="message" class="form-label">
+                                        Optional Message <span class="text-muted">(Max 500 characters)</span>
+                                    </label>
+                                    <textarea id="message" name="message" class="form-control" rows="4" 
+                                              maxlength="500" 
+                                              placeholder="Add a personal message to your connect request..."></textarea>
+                                    <div class="form-text">
+                                        <span id="charCount">0</span> / 500 characters
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane me-2"></i>Send Connect Request
+                                    </button>
+                                    <a href="@Url.Action("View", "Profile", new { id = targetUser.Id })" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>Back to Profile
+                                    </a>
+                                </div>
+                            </form>
+                        }
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger">
+                            User not found.
+                        </div>
+                        <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">Go to Dashboard</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Character counter
+            $('#message').on('input', function() {
+                var length = $(this).val().length;
+                $('#charCount').text(length);
+            });
+
+            // Form submission
+            $('#connectForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                var userId = $('#userId').val();
+                var message = $('#message').val();
+                var token = $('input[name="__RequestVerificationToken"]').val();
+
+                $.ajax({
+                    url: '@Url.Action("Send", "Connect")',
+                    type: 'POST',
+                    data: {
+                        userId: userId,
+                        message: message,
+                        __RequestVerificationToken: token
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.message);
+                            window.location.href = '@Url.Action("Requests", "Connect")';
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        var errorMessage = 'An error occurred while sending the connect request.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        alert(errorMessage);
+                    }
+                });
+            });
+        });
+    </script>
+}
+

@@ -1,0 +1,547 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    var user = ViewBag.User as testapp1.Models.User;
+    var profile = ViewBag.Profile as testapp1.Models.UserProfile;
+    var photos = ViewBag.Photos as List<testapp1.Models.ProfilePhoto> ?? new List<testapp1.Models.ProfilePhoto>();
+    var age = ViewBag.Age as int? ?? 0;
+    var pendingInvitations = ViewBag.PendingInvitations as int? ?? 0;
+    var acceptedInvitations = ViewBag.AcceptedInvitations as int? ?? 0;
+    var recentVisitors = ViewBag.RecentVisitors as List<testapp1.Models.UserInteraction> ?? new List<testapp1.Models.UserInteraction>();
+    var newMatches = ViewBag.NewMatches as List<testapp1.Controllers.HomeController.MatchViewModel> ?? new List<testapp1.Controllers.HomeController.MatchViewModel>();
+    var notifications = ViewBag.Notifications as List<testapp1.Models.UserInteraction> ?? new List<testapp1.Models.UserInteraction>();
+    var unreadMessages = ViewBag.UnreadMessages as int? ?? 0;
+    
+    var primaryPhoto = photos.FirstOrDefault(p => p.IsPrimary) ?? photos.FirstOrDefault();
+    var userId = user?.Id ?? 0;
+    var userCode = $"SHA{userId:D8}";
+    var myMatches = ViewBag.MyMatches as List<testapp1.Models.UserInteraction> ?? new List<testapp1.Models.UserInteraction>();
+    var matchPhotos = ViewBag.MatchPhotos as Dictionary<long, string?> ?? new Dictionary<long, string?>();
+}
+
+@if (user == null)
+{
+    <!-- Public Landing Page -->
+    <div class="hero-section bg-primary text-white py-5 mb-5">
+        <div class="container text-center">
+            <h1 class="display-4 mb-3">Find Your Perfect Match</h1>
+            <p class="lead mb-4">Join thousands of happy couples who found their life partners through our platform</p>
+            <div class="home-actions">
+                <a href="@Url.Action("Register", "Auth")" class="btn btn-light btn-lg me-3">Create Free Profile</a>
+                <a href="@Url.Action("Login", "Auth")" class="btn btn-outline-light btn-lg">Login</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row mb-5">
+            <div class="col-md-4 text-center mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <i class="fas fa-user-check fa-3x text-primary mb-3"></i>
+                        <h4>Verified Profiles</h4>
+                        <p>All profiles are verified for authenticity and safety</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <i class="fas fa-search fa-3x text-primary mb-3"></i>
+                        <h4>Advanced Search</h4>
+                        <p>Find matches based on your preferences and criteria</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
+                        <h4>Safe & Secure</h4>
+                        <p>Your privacy and security are our top priorities</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 text-center">
+                <h3 class="mb-4">Ready to Start Your Journey?</h3>
+                <a href="@Url.Action("Register", "Auth")" class="btn btn-primary btn-lg">Get Started Now</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Dashboard for Logged-in Users -->
+    <style>
+        .dashboard-container {
+            background: #f5f5f5;
+            min-height: calc(100vh - 200px);
+            padding: 20px 0;
+        }
+        .profile-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #d32f2f;
+            margin: 0 auto 15px;
+            display: block;
+        }
+        .profile-avatar-placeholder {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #d32f2f;
+            position: relative;
+        }
+        .add-photo-icon {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: #1976d2;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .activity-stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .activity-stat {
+            flex: 1;
+        }
+        .activity-stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #d32f2f;
+        }
+        .activity-stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .match-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .match-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .match-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+        .match-info {
+            flex: 1;
+        }
+        .match-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .match-details {
+            font-size: 12px;
+            color: #666;
+        }
+        .connect-btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .connect-btn:hover {
+            background: #45a049;
+        }
+        .notification-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        .notification-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+        .notification-text {
+            flex: 1;
+            font-size: 13px;
+            color: #333;
+        }
+        .notification-date {
+            font-size: 11px;
+            color: #999;
+        }
+        .promo-banner {
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .promo-guarantee {
+            background: linear-gradient(135deg, #ffc107 0%, #ffa000 100%);
+            color: #333;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .badge-count {
+            background: #d32f2f;
+            color: white;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .recent-visitors-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding: 10px 0;
+        }
+        .visitor-card {
+            min-width: 200px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .visitor-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto 10px;
+        }
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .verified-badge i {
+            margin-right: 5px;
+        }
+    </style>
+
+    <div class="dashboard-container">
+        <div class="container">
+            <div class="row">
+                <!-- Left Column -->
+                <div class="col-lg-3">
+                    <!-- User Profile Summary -->
+                    <div class="profile-card">
+                        <div style="position: relative; display: inline-block; width: 100%; text-align: center;">
+                            @if (primaryPhoto != null && !string.IsNullOrEmpty(primaryPhoto.ImageUrl))
+                            {
+                                <img src="@primaryPhoto.ImageUrl?v=@primaryPhoto.Id" alt="Profile" class="profile-avatar" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                <div class="profile-avatar-placeholder" style="display: none;">
+                                    <i class="fas fa-user fa-3x text-muted"></i>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="profile-avatar-placeholder">
+                                    <i class="fas fa-user fa-3x text-muted"></i>
+                                </div>
+                            }
+                            <a href="@Url.Action("Index", "PhotoAlbum")" class="add-photo-icon" title="Add Photo">
+                                <i class="fas fa-plus"></i>
+                            </a>
+                        </div>
+                        <h5 class="text-center mb-1">@(profile?.FullName ?? user.Email)</h5>
+                        <p class="text-center text-muted small mb-2">@userCode</p>
+                        <div class="text-center mb-3">
+                            <a href="@Url.Action("Edit", "Profile")" class="btn btn-sm btn-outline-primary">Edit</a>
+                        </div>
+                        <div class="text-center mb-2">
+                            <span class="badge bg-secondary">Free Membership</span>
+                            <a href="#" class="small text-primary ms-2">Upgrade</a>
+                        </div>
+                        <div class="text-center">
+                            <span class="verified-badge">
+                                <i class="fas fa-check-circle"></i> Blue Tick Verified
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Activity Summary -->
+                    <div class="profile-card">
+                        <h6 class="mb-3">Your Activity Summary</h6>
+                        <div class="activity-stats">
+                            <div class="activity-stat">
+                                <div class="activity-stat-number">@pendingInvitations</div>
+                                <div class="activity-stat-label">Pending<br/>Invitations</div>
+                            </div>
+                            <div class="activity-stat">
+                                <div class="activity-stat-number">@acceptedInvitations</div>
+                                <div class="activity-stat-label">Accepted<br/>Invitations</div>
+                            </div>
+                            <div class="activity-stat">
+                                <div class="activity-stat-number">@recentVisitors.Count</div>
+                                <div class="activity-stat-label">Recent<br/>Visitors</div>
+                            </div>
+                        </div>
+                        <div class="mt-3 small text-muted">
+                            <p class="mb-1"><i class="fas fa-info-circle"></i> Only Premium Members can send/view messages</p>
+                            <p class="mb-1">0 Contacts viewed</p>
+                            <p>0 Chats initiated</p>
+                        </div>
+                    </div>
+
+                    <!-- Improve Profile -->
+                    <div class="profile-card">
+                        <h6 class="mb-3">Improve your Profile</h6>
+                        <div class="d-flex gap-2 mb-3">
+                            @foreach (var photo in photos.Take(2))
+                            {
+                                <img src="@photo.ImageUrl" alt="Photo" style="width: 80px; height: 100px; object-fit: cover; border-radius: 4px;" />
+                            }
+                            @if (photos.Count < 2)
+                            {
+                                <div style="width: 80px; height: 100px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-camera text-muted"></i>
+                                </div>
+                            }
+                        </div>
+                        <p class="small text-muted mb-3">Members with Photos get twice as many responses</p>
+                        <a href="@Url.Action("Index", "PhotoAlbum")" class="btn btn-sm btn-primary w-100">Add Photo</a>
+                    </div>
+                </div>
+
+                <!-- Middle Column -->
+                <div class="col-lg-6">
+                    <!-- New Matches -->
+                    <div class="profile-card">
+                        <div class="section-title">
+                            <span>New Matches for you <span class="badge-count">@newMatches.Count</span></span>
+                            <a href="@Url.Action("Index", "Search")" class="small text-primary">View All</a>
+                        </div>
+                        @if (newMatches.Any())
+                        {
+                            @foreach (var match in newMatches)
+                            {
+                                <div class="match-card">
+                                    <img src="@(match.PhotoUrl ?? "/favicon.ico")" 
+                                         alt="@match.Name" 
+                                         class="match-avatar"
+                                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\'%3E%3Crect fill=\'%23ddd\' width=\'60\' height=\'60\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'16\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3E?%3C/text%3E%3C/svg%3E';">
+                                    <div class="match-info">
+                                        <div class="match-name">@match.Name</div>
+                                        <div class="match-details">
+                                            @match.Age yrs, @match.Height, @match.MotherTongue, @match.City, @match.Occupation
+                                        </div>
+                                    </div>
+                                    <button class="connect-btn">
+                                        <i class="fas fa-check"></i> Connect Now
+                                    </button>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center py-4">No new matches yet. <a href="@Url.Action("Index", "Search")">Browse profiles</a> to find matches!</p>
+                        }
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-lg-3">
+                    <!-- My Matches -->
+                    <div class="profile-card">
+                        <div class="section-title">
+                            <span>
+                                <i class="fas fa-heart text-danger me-2"></i>My Matches 
+                                <span class="badge-count">@myMatches.Count</span>
+                            </span>
+                            <a href="@Url.Action("Matches", "Connect")" class="small text-primary">View All</a>
+                        </div>
+                        @if (myMatches.Any())
+                        {
+                            @foreach (var match in myMatches.Take(5))
+                            {
+                                var otherUser = match.FromUserId == userId ? match.ToUser : match.FromUser;
+                                if (otherUser == null) continue;
+                                
+                                var otherProfile = otherUser.UserProfile;
+                                var otherPhoto = matchPhotos.ContainsKey(otherUser.Id) ? matchPhotos[otherUser.Id] : null;
+                                var otherDisplayName = otherProfile?.FullName ?? otherUser.Email ?? "Unknown User";
+                                
+                                var otherAge = otherProfile != null ? DateTime.UtcNow.Year - otherProfile.DateOfBirth.Year : 0;
+                                if (otherProfile != null && otherProfile.DateOfBirth.Date > DateTime.UtcNow.AddYears(-otherAge)) otherAge--;
+                                
+                                string otherHeight = "Not specified";
+                                if (otherProfile?.HeightCm.HasValue == true)
+                                {
+                                    var cm = otherProfile.HeightCm.Value;
+                                    var feet = cm / 30.48;
+                                    var inches = (feet - Math.Floor(feet)) * 12;
+                                    otherHeight = $"{(int)Math.Floor(feet)}'{(int)Math.Round(inches)}\"";
+                                }
+                                
+                                <div class="match-card">
+                                    <img src="@(otherPhoto ?? "/favicon.ico")" 
+                                         alt="@otherDisplayName" 
+                                         class="match-avatar"
+                                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\'%3E%3Crect fill=\'%23ddd\' width=\'60\' height=\'60\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'16\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3E?%3C/text%3E%3C/svg%3E';">
+                                    <div class="match-info">
+                                        <div class="match-name">@otherDisplayName</div>
+                                        <div class="match-details">
+                                            @otherAge yrs, @otherHeight, @(otherProfile?.City ?? "Not specified")
+                                        </div>
+                                    </div>
+                                    <a href="@Url.Action("View", "Profile", new { id = otherUser.Id })" class="btn btn-sm btn-primary" style="white-space: nowrap;">
+                                        <i class="fas fa-user me-1"></i>View
+                                    </a>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center py-4 small">No matches yet. <a href="@Url.Action("Index", "Search")">Browse profiles</a> to find matches!</p>
+                        }
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="profile-card">
+                        <div class="section-title">
+                            <span>Notifications <span class="badge-count">@notifications.Count</span></span>
+                            <a href="#" class="small text-primary">View All</a>
+                        </div>
+                        @if (notifications.Any())
+                        {
+                            var notificationPhotos = ViewBag.NotificationPhotos as Dictionary<long, string?> ?? new Dictionary<long, string?>();
+                            @foreach (var notification in notifications.Take(5))
+                            {
+                                var fromUser = notification.FromUser;
+                                var fromProfile = fromUser?.UserProfile;
+                                var notifPhoto = notificationPhotos.ContainsKey(notification.FromUserId) 
+                                    ? notificationPhotos[notification.FromUserId] 
+                                    : null;
+                                var displayName = fromProfile?.FullName ?? fromUser?.Email ?? "Unknown User";
+                                
+                                <div class="notification-item">
+                                    <img src="@(notifPhoto ?? "/favicon.ico")" 
+                                         alt="@displayName" 
+                                         class="notification-avatar"
+                                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\'%3E%3Crect fill=\'%23ddd\' width=\'40\' height=\'40\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'14\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3E?%3C/text%3E%3C/svg%3E';">
+                                    <div class="notification-text">
+                                        <div>@displayName @(notification.InteractionType == "interest" ? "has sent you an Interest" : notification.InteractionType == "view" ? "has Viewed your Interest" : "has sent you a Photo Request")</div>
+                                        <div class="notification-date">@notification.CreatedAt.ToString("dd MMM")</div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted text-center py-4 small">No notifications yet</p>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Sections -->
+            <div class="row mt-4">
+                <!-- Recent Visitors -->
+                <div class="col-12 mb-4">
+                    <div class="profile-card">
+                        <div class="section-title">
+                            <span>Recent Visitors <span class="badge-count">@recentVisitors.Count</span></span>
+                        </div>
+                        <div class="recent-visitors-scroll">
+                            @{
+                                var visitorPhotos = ViewBag.VisitorPhotos as Dictionary<long, string?> ?? new Dictionary<long, string?>();
+                            }
+                            @foreach (var visitor in recentVisitors.Take(10))
+                            {
+                                var visitorUser = visitor.FromUser;
+                                var visitorProfile = visitorUser?.UserProfile;
+                                var visitorPhoto = visitorPhotos.ContainsKey(visitor.FromUserId) 
+                                    ? visitorPhotos[visitor.FromUserId] 
+                                    : null;
+                                var visitorDisplayName = visitorProfile?.FullName ?? visitorUser?.Email ?? "Unknown User";
+                                
+                                var visitorAge = visitorProfile != null ? DateTime.UtcNow.Year - visitorProfile.DateOfBirth.Year : 0;
+                                string visitorHeight = "Not specified";
+                                if (visitorProfile?.HeightCm.HasValue == true)
+                                {
+                                    var cm = visitorProfile.HeightCm.Value;
+                                    var feet = cm / 30.48;
+                                    var inches = (feet - Math.Floor(feet)) * 12;
+                                    visitorHeight = $"{(int)Math.Floor(feet)}'{(int)Math.Round(inches)}\"";
+                                }
+                                
+                                <div class="visitor-card">
+                                    <img src="@(visitorPhoto ?? "/favicon.ico")" 
+                                         alt="@visitorDisplayName" 
+                                         class="visitor-avatar"
+                                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\'%3E%3Crect fill=\'%23ddd\' width=\'80\' height=\'80\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'20\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3E?%3C/text%3E%3C/svg%3E';">
+                                    <h6 class="mb-1">@visitorDisplayName</h6>
+                                    <p class="small text-muted mb-2">
+                                        @visitorAge yrs, @visitorHeight, @(visitorProfile?.MotherTongue ?? "Not specified"), @(visitorProfile?.City ?? "Not specified"), @(visitorProfile?.Occupation ?? "Not specified")
+                                    </p>
+                                    <button class="connect-btn btn-sm">
+                                        <i class="fas fa-check"></i> Connect Now
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

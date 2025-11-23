@@ -1,0 +1,286 @@
+@model List<testapp1.Models.Message>
+@{
+    ViewData["Title"] = "Conversation";
+    var matchId = ViewBag.MatchId as long? ?? 0;
+    var otherUserId = ViewBag.OtherUserId as long? ?? 0;
+    var otherUserName = ViewBag.OtherUserName as string ?? "User";
+    var otherUserPhoto = ViewBag.OtherUserPhoto as string;
+}
+
+<style>
+    .conversation-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 200px);
+    }
+    .conversation-header {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px 8px 0 0;
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        border-bottom: 2px solid #d32f2f;
+    }
+    .conversation-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 15px;
+        border: 2px solid #e0e0e0;
+    }
+    .conversation-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+    }
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        background: #f5f5f5;
+        padding: 20px;
+        border-left: 1px solid #e0e0e0;
+        border-right: 1px solid #e0e0e0;
+    }
+    .message {
+        display: flex;
+        margin-bottom: 15px;
+        animation: fadeIn 0.3s;
+    }
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .message.sent {
+        justify-content: flex-end;
+    }
+    .message.received {
+        justify-content: flex-start;
+    }
+    .message-bubble {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 18px;
+        word-wrap: break-word;
+    }
+    .message.sent .message-bubble {
+        background: #d32f2f;
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+    .message.received .message-bubble {
+        background: white;
+        color: #333;
+        border: 1px solid #e0e0e0;
+        border-bottom-left-radius: 4px;
+    }
+    .message-time {
+        font-size: 11px;
+        color: #999;
+        margin-top: 5px;
+        padding: 0 8px;
+    }
+    .message.sent .message-time {
+        text-align: right;
+    }
+    .message-input-container {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 0 0 8px 8px;
+        padding: 15px 20px;
+        display: flex;
+        gap: 10px;
+    }
+    .message-input {
+        flex: 1;
+        border: 1px solid #e0e0e0;
+        border-radius: 20px;
+        padding: 10px 20px;
+        font-size: 14px;
+        resize: none;
+        outline: none;
+    }
+    .message-input:focus {
+        border-color: #d32f2f;
+    }
+    .send-button {
+        background: #d32f2f;
+        color: white;
+        border: none;
+        border-radius: 20px;
+        padding: 10px 25px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.3s;
+    }
+    .send-button:hover {
+        background: #b71c1c;
+    }
+    .send-button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+    .empty-conversation {
+        text-align: center;
+        padding: 40px 20px;
+        color: #666;
+    }
+</style>
+
+<div class="conversation-container">
+    <div class="conversation-header">
+        <img src="@(otherUserPhoto ?? "/favicon.ico")" 
+             alt="@otherUserName" 
+             class="conversation-avatar"
+             onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\'%3E%3Crect fill=\'%23ddd\' width=\'50\' height=\'50\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'16\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3E?%3C/text%3E%3C/svg%3E';">
+        <div class="conversation-name">@otherUserName</div>
+    </div>
+
+    <div class="messages-container" id="messagesContainer">
+        @if (Model != null && Model.Any())
+        {
+            @foreach (var message in Model)
+            {
+                var isSent = message.FromUserId == long.Parse(Context.Session.GetString("UserId") ?? "0");
+                <div class="message @(isSent ? "sent" : "received")" data-message-id="@message.Id">
+                    <div>
+                        <div class="message-bubble">@message.Content</div>
+                        <div class="message-time">
+                            @message.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-conversation">
+                <p>No messages yet. Start the conversation!</p>
+            </div>
+        }
+    </div>
+
+    <div class="message-input-container">
+        <textarea id="messageInput" 
+                  class="message-input" 
+                  placeholder="Type your message..." 
+                  rows="1"
+                  onkeydown="handleKeyPress(event)"></textarea>
+        <button id="sendButton" class="send-button" onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    const matchId = @matchId;
+    let isSending = false;
+
+    // Auto-scroll to bottom on load
+    $(document).ready(function() {
+        scrollToBottom();
+    });
+
+    function scrollToBottom() {
+        const container = document.getElementById('messagesContainer');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage();
+        }
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const button = document.getElementById('sendButton');
+        const message = input.value.trim();
+
+        if (!message || isSending) {
+            return;
+        }
+
+        isSending = true;
+        button.disabled = true;
+        button.textContent = 'Sending...';
+
+        $.ajax({
+            url: '@Url.Action("SendMessage", "Inbox")',
+            type: 'POST',
+            data: {
+                matchId: matchId,
+                content: message
+            },
+            success: function(response) {
+                if (response && response.success) {
+                    input.value = '';
+                    input.style.height = 'auto';
+                    
+                    // Add message to UI immediately
+                    const messagesContainer = document.getElementById('messagesContainer');
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message sent';
+                    messageDiv.innerHTML = `
+                        <div>
+                            <div class="message-bubble">${escapeHtml(message)}</div>
+                            <div class="message-time">Just now</div>
+                        </div>
+                    `;
+                    messagesContainer.appendChild(messageDiv);
+                    scrollToBottom();
+                } else {
+                    alert(response && response.message ? response.message : 'Failed to send message.');
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'An error occurred while sending the message.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                alert(errorMessage);
+            },
+            complete: function() {
+                isSending = false;
+                button.disabled = false;
+                button.textContent = 'Send';
+            }
+        });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Auto-resize textarea
+    const textarea = document.getElementById('messageInput');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    }
+
+    // Poll for new messages every 5 seconds
+    setInterval(function() {
+        const lastMessageId = $('.message').last().data('message-id');
+        if (lastMessageId) {
+            checkForNewMessages(lastMessageId);
+        }
+    }, 5000);
+
+    function checkForNewMessages(lastMessageId) {
+        // This would require an endpoint to get new messages
+        // For now, we'll just reload the page after a delay if needed
+    }
+</script>
+
+

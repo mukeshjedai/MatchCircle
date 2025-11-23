@@ -1,0 +1,134 @@
+@page
+@model ProfileModel
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+@if (Model.UserProfile != null)
+{
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow mb-4">
+                    <div class="card-body text-center">
+                        @if (Model.Photos.Any(p => p.IsPrimary))
+                        {
+                            var primaryPhoto = Model.Photos.First(p => p.IsPrimary);
+                            <img src="@primaryPhoto.ImageUrl" alt="Profile Photo" class="img-fluid rounded-circle mb-3" style="width: 200px; height: 200px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 200px; height: 200px;">
+                                <i class="fas fa-user fa-5x text-muted"></i>
+                            </div>
+                        }
+                        <h3>@Model.UserProfile.FullName</h3>
+                        <p class="text-muted">Profile ID: @Model.UserProfile.UserId</p>
+                        <a href="/Profile/Edit" class="btn btn-primary">Edit Profile</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4>Profile Details</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Gender:</strong> @Model.UserProfile.Gender
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Date of Birth:</strong> @Model.UserProfile.DateOfBirth.ToString("MMMM dd, yyyy")
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.UserProfile.MaritalStatus))
+                        {
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>Marital Status:</strong> @Model.UserProfile.MaritalStatus
+                                </div>
+                                @if (Model.UserProfile.HeightCm.HasValue)
+                                {
+                                    <div class="col-md-6">
+                                        <strong>Height:</strong> @Model.UserProfile.HeightCm cm
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.UserProfile.Religion))
+                        {
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>Religion:</strong> @Model.UserProfile.Religion
+                                </div>
+                                @if (!string.IsNullOrEmpty(Model.UserProfile.Caste))
+                                {
+                                    <div class="col-md-6">
+                                        <strong>Caste:</strong> @Model.UserProfile.Caste
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.UserProfile.City))
+                        {
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>Location:</strong> @Model.UserProfile.City
+                                    @if (!string.IsNullOrEmpty(Model.UserProfile.State))
+                                    {
+                                        <text>, @Model.UserProfile.State</text>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.UserProfile.Country))
+                                    {
+                                        <text>, @Model.UserProfile.Country</text>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.UserProfile.EducationLevel))
+                        {
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>Education:</strong> @Model.UserProfile.EducationLevel
+                                    @if (!string.IsNullOrEmpty(Model.UserProfile.EducationField))
+                                    {
+                                        <text> - @Model.UserProfile.EducationField</text>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(Model.UserProfile.Occupation))
+                                {
+                                    <div class="col-md-6">
+                                        <strong>Occupation:</strong> @Model.UserProfile.Occupation
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.UserProfile.AboutMe))
+                        {
+                            <div class="mb-3">
+                                <strong>About Me:</strong>
+                                <p>@Model.UserProfile.AboutMe</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container mt-5">
+        <div class="alert alert-warning">
+            Profile not found. Please complete your registration.
+        </div>
+    </div>
+}
+

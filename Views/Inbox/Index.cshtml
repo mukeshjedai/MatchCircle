@@ -1,0 +1,245 @@
+@model List<testapp1.Controllers.ConversationViewModel>
+@{
+    ViewData["Title"] = "My Inbox";
+    var unreadTotal = ViewBag.UnreadTotal as int? ?? 0;
+    var today = DateTime.UtcNow.Date;
+    var yesterday = today.AddDays(-1);
+}
+
+<style>
+    .inbox-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .inbox-header {
+        background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .inbox-header h2 {
+        margin: 0 0 10px 0;
+        font-size: 28px;
+        font-weight: 600;
+    }
+    .inbox-header p {
+        margin: 0;
+        opacity: 0.9;
+    }
+    .conversation-list {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .conversation-item {
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: inherit;
+        position: relative;
+    }
+    .conversation-item:hover {
+        background: #f8f9fa;
+        transform: translateX(2px);
+    }
+    .conversation-item:last-child {
+        border-bottom: none;
+    }
+    .conversation-item.unread {
+        background: #e3f2fd;
+        font-weight: 500;
+        border-left: 4px solid #d32f2f;
+    }
+    .conversation-item.unread:hover {
+        background: #bbdefb;
+    }
+    .conversation-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 15px;
+        border: 3px solid #e0e0e0;
+        flex-shrink: 0;
+    }
+    .conversation-item.unread .conversation-avatar {
+        border-color: #d32f2f;
+    }
+    .conversation-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .conversation-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    .conversation-item.unread .conversation-name {
+        color: #1976d2;
+    }
+    .conversation-preview {
+        font-size: 14px;
+        color: #666;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 500px;
+    }
+    .conversation-item.unread .conversation-preview {
+        color: #555;
+        font-weight: 500;
+    }
+    .conversation-meta {
+        text-align: right;
+        margin-left: 15px;
+        flex-shrink: 0;
+    }
+    .conversation-time {
+        font-size: 12px;
+        color: #999;
+        margin-bottom: 5px;
+        white-space: nowrap;
+    }
+    .unread-badge {
+        background: #d32f2f;
+        color: white;
+        border-radius: 12px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: bold;
+        display: inline-block;
+        min-width: 24px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(211, 47, 47, 0.3);
+    }
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: #666;
+    }
+    .empty-state i {
+        font-size: 80px;
+        color: #ccc;
+        margin-bottom: 20px;
+    }
+    .empty-state h3 {
+        color: #333;
+        margin-bottom: 10px;
+    }
+    .inbox-stats {
+        background: #f8f9fa;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+    }
+    .inbox-stats strong {
+        color: #d32f2f;
+    }
+    .text-danger {
+        color: #d32f2f !important;
+    }
+</style>
+
+<div class="inbox-container">
+    <div class="inbox-header">
+        <h2>My Inbox</h2>
+        @if (unreadTotal > 0)
+        {
+            <p class="text-muted">You have <strong>@unreadTotal</strong> unread message(s)</p>
+        }
+        else
+        {
+            <p class="text-muted">No unread messages</p>
+        }
+    </div>
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="conversation-list">
+            <div class="inbox-stats">
+                <span><strong>@Model.Count</strong> conversation(s)</span>
+                @if (unreadTotal > 0)
+                {
+                    <span class="text-danger"><strong>@unreadTotal</strong> unread</span>
+                }
+            </div>
+            @foreach (var conversation in Model)
+            {
+                <a href="@Url.Action("Conversation", "Inbox", new { matchId = conversation.MatchId })" 
+                   class="conversation-item @(conversation.UnreadCount > 0 ? "unread" : "")">
+                    <img src="@(conversation.OtherUserPhoto ?? "/favicon.ico")" 
+                         alt="@conversation.OtherUserName" 
+                         class="conversation-avatar"
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\'%3E%3Crect fill=\'%23ddd\' width=\'60\' height=\'60\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'20\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3E?%3C/text%3E%3C/svg%3E';">
+                    <div class="conversation-info">
+                        <div class="conversation-name">@conversation.OtherUserName</div>
+                        <div class="conversation-preview">
+                            @if (conversation.IsLastMessageFromMe)
+                            {
+                                <span class="text-muted">You: </span>
+                            }
+                            @conversation.LastMessage
+                        </div>
+                    </div>
+                    <div class="conversation-meta">
+                        <div class="conversation-time">
+                            @{
+                                var messageTime = conversation.LastMessageTime;
+                                var messageDate = messageTime.Date;
+                            }
+                            @if (messageDate == today)
+                            {
+                                @messageTime.ToString("HH:mm")
+                            }
+                            else if (messageDate == yesterday)
+                            {
+                                <text>Yesterday</text>
+                            }
+                            else if (messageDate >= today.AddDays(-7))
+                            {
+                                @messageTime.ToString("dddd")
+                            }
+                            else
+                            {
+                                @messageTime.ToString("MMM dd")
+                            }
+                        </div>
+                        @if (conversation.UnreadCount > 0)
+                        {
+                            <span class="unread-badge">@conversation.UnreadCount</span>
+                        }
+                    </div>
+                </a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="conversation-list">
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <h3>No conversations yet</h3>
+                <p>Start matching with people to begin conversations!</p>
+                <a href="@Url.Action("Index", "Search")" class="btn btn-primary mt-3" style="background: #d32f2f; border-color: #d32f2f; padding: 10px 30px; font-weight: 600;">
+                    <i class="fas fa-search me-2"></i>Browse Profiles
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+
+

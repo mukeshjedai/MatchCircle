@@ -1,0 +1,361 @@
+@{
+    ViewData["Title"] = "Connect Requests";
+    var receivedRequests = ViewBag.ReceivedRequests as List<testapp1.Models.UserInteraction> ?? new List<testapp1.Models.UserInteraction>();
+    var sentRequests = ViewBag.SentRequests as List<testapp1.Models.UserInteraction> ?? new List<testapp1.Models.UserInteraction>();
+    var acceptedConnections = ViewBag.AcceptedConnections as List<testapp1.Models.UserInteraction> ?? new List<testapp1.Models.UserInteraction>();
+    var photos = ViewBag.Photos as Dictionary<long, testapp1.Models.ProfilePhoto> ?? new Dictionary<long, testapp1.Models.ProfilePhoto>();
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">
+        <i class="fas fa-user-friends me-2"></i>Connect Requests
+    </h2>
+
+    <ul class="nav nav-tabs mb-4" id="connectTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="received-tab" data-bs-toggle="tab" data-bs-target="#received" type="button" role="tab">
+                Received <span class="badge bg-danger">@receivedRequests.Count</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button" role="tab">
+                Sent <span class="badge bg-secondary">@sentRequests.Count</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="accepted-tab" data-bs-toggle="tab" data-bs-target="#accepted" type="button" role="tab">
+                Accepted Connections
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="connectTabContent">
+        <!-- Received Requests -->
+        <div class="tab-pane fade show active" id="received" role="tabpanel">
+            @if (receivedRequests.Any())
+            {
+                @foreach (var request in receivedRequests)
+                {
+                    var fromUser = request.FromUser;
+                    if (fromUser == null) continue;
+                    var fromProfile = fromUser.UserProfile;
+                    var fromPhoto = photos.ContainsKey(fromUser.Id) ? photos[fromUser.Id] : null;
+                    var fromAge = 0;
+                    if (fromProfile != null)
+                    {
+                        fromAge = DateTime.UtcNow.Year - fromProfile.DateOfBirth.Year;
+                        if (DateTime.UtcNow.DayOfYear < fromProfile.DateOfBirth.DayOfYear) fromAge--;
+                    }
+
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-2 text-center">
+                                    @if (fromPhoto != null)
+                                    {
+                                        <img src="@fromPhoto.ImageUrl?v=@fromPhoto.Id" 
+                                             alt="@(fromProfile?.FullName ?? fromUser.Email)" 
+                                             class="rounded-circle mb-2" 
+                                             style="width: 80px; height: 80px; object-fit: cover;"
+                                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\'%3E%3Ccircle fill=\'%236c757d\' cx=\'40\' cy=\'40\' r=\'40\'/%3E%3Ctext fill=\'%23fff\' font-family=\'sans-serif\' font-size=\'30\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3E%3C/text%3E%3C/svg%3E';" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-2" 
+                                             style="width: 80px; height: 80px; margin: 0 auto;">
+                                            <i class="fas fa-user fa-2x text-white"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="col-md-6">
+                                    <h5 class="mb-1">@(fromProfile?.FullName ?? fromUser.Email)</h5>
+                                    <p class="text-muted mb-1">
+                                        @fromAge years, @(fromProfile?.Gender ?? "Not specified")
+                                        @if (!string.IsNullOrEmpty(fromProfile?.City))
+                                        {
+                                            <span>, @fromProfile.City</span>
+                                        }
+                                    </p>
+                                    @if (!string.IsNullOrEmpty(request.Message))
+                                    {
+                                        <div class="alert alert-light mt-2 mb-0">
+                                            <strong>Message:</strong>
+                                            <p class="mb-0">@request.Message</p>
+                                        </div>
+                                    }
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>@request.CreatedAt.ToString("MMM dd, yyyy 'at' hh:mm tt")
+                                    </small>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-success accept-btn" data-request-id="@request.Id">
+                                            <i class="fas fa-check me-1"></i>Accept
+                                        </button>
+                                        <button class="btn btn-danger decline-btn" data-request-id="@request.Id">
+                                            <i class="fas fa-times me-1"></i>Decline
+                                        </button>
+                                    </div>
+                                    @if (fromUser != null)
+                                    {
+                                        <div class="mt-2">
+                                            <a href="@Url.Action("View", "Profile", new { id = fromUser.Id })" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i>View Profile
+                                            </a>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p class="mb-0">No pending connect requests received.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Sent Requests -->
+        <div class="tab-pane fade" id="sent" role="tabpanel">
+            @if (sentRequests.Any())
+            {
+                @foreach (var request in sentRequests)
+                {
+                    var toUser = request.ToUser;
+                    if (toUser == null) continue;
+                    var toProfile = toUser.UserProfile;
+                    var toPhoto = photos.ContainsKey(toUser.Id) ? photos[toUser.Id] : null;
+                    var toAge = 0;
+                    if (toProfile != null)
+                    {
+                        toAge = DateTime.UtcNow.Year - toProfile.DateOfBirth.Year;
+                        if (DateTime.UtcNow.DayOfYear < toProfile.DateOfBirth.DayOfYear) toAge--;
+                    }
+
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-2 text-center">
+                                    @if (toPhoto != null)
+                                    {
+                                        <img src="@toPhoto.ImageUrl?v=@toPhoto.Id" 
+                                             alt="@(toProfile?.FullName ?? toUser.Email)" 
+                                             class="rounded-circle mb-2" 
+                                             style="width: 80px; height: 80px; object-fit: cover;"
+                                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\'%3E%3Ccircle fill=\'%236c757d\' cx=\'40\' cy=\'40\' r=\'40\'/%3E%3Ctext fill=\'%23fff\' font-family=\'sans-serif\' font-size=\'30\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3E%3C/text%3E%3C/svg%3E';" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-2" 
+                                             style="width: 80px; height: 80px; margin: 0 auto;">
+                                            <i class="fas fa-user fa-2x text-white"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="col-md-8">
+                                    <h5 class="mb-1">@(toProfile?.FullName ?? toUser.Email)</h5>
+                                    <p class="text-muted mb-1">
+                                        @toAge years, @(toProfile?.Gender ?? "Not specified")
+                                        @if (!string.IsNullOrEmpty(toProfile?.City))
+                                        {
+                                            <span>, @toProfile.City</span>
+                                        }
+                                    </p>
+                                    @if (!string.IsNullOrEmpty(request.Message))
+                                    {
+                                        <div class="alert alert-light mt-2 mb-0">
+                                            <strong>Your message:</strong>
+                                            <p class="mb-0">@request.Message</p>
+                                        </div>
+                                    }
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>Sent on @request.CreatedAt.ToString("MMM dd, yyyy 'at' hh:mm tt")
+                                    </small>
+                                    <span class="badge bg-warning text-dark ms-2">Pending</span>
+                                </div>
+                                @if (toUser != null)
+                                {
+                                    <div class="col-md-2 text-end">
+                                        <a href="@Url.Action("View", "Profile", new { id = toUser.Id })" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>View Profile
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-paper-plane fa-3x mb-3"></i>
+                    <p class="mb-0">No pending connect requests sent.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Accepted Connections -->
+        <div class="tab-pane fade" id="accepted" role="tabpanel">
+            @if (acceptedConnections.Any())
+            {
+                @foreach (var connection in acceptedConnections)
+                {
+                    var otherUser = connection.FromUserId == long.Parse(Context.Session.GetString("UserId") ?? "0") 
+                        ? connection.ToUser 
+                        : connection.FromUser;
+                    if (otherUser == null) continue;
+                    var otherProfile = otherUser.UserProfile;
+                    var otherPhoto = photos.ContainsKey(otherUser.Id) ? photos[otherUser.Id] : null;
+                    var otherAge = 0;
+                    if (otherProfile != null)
+                    {
+                        otherAge = DateTime.UtcNow.Year - otherProfile.DateOfBirth.Year;
+                        if (DateTime.UtcNow.DayOfYear < otherProfile.DateOfBirth.DayOfYear) otherAge--;
+                    }
+
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-2 text-center">
+                                    @if (otherPhoto != null)
+                                    {
+                                        <img src="@otherPhoto.ImageUrl?v=@otherPhoto.Id" 
+                                             alt="@(otherProfile?.FullName ?? otherUser.Email)" 
+                                             class="rounded-circle mb-2" 
+                                             style="width: 80px; height: 80px; object-fit: cover;"
+                                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'80\' height=\'80\'%3E%3Ccircle fill=\'%236c757d\' cx=\'40\' cy=\'40\' r=\'40\'/%3E%3Ctext fill=\'%23fff\' font-family=\'sans-serif\' font-size=\'30\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3E%3C/text%3E%3C/svg%3E';" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-2" 
+                                             style="width: 80px; height: 80px; margin: 0 auto;">
+                                            <i class="fas fa-user fa-2x text-white"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="col-md-8">
+                                    <h5 class="mb-1">@(otherProfile?.FullName ?? otherUser.Email)</h5>
+                                    <p class="text-muted mb-1">
+                                        @otherAge years, @(otherProfile?.Gender ?? "Not specified")
+                                        @if (!string.IsNullOrEmpty(otherProfile?.City))
+                                        {
+                                            <span>, @otherProfile.City</span>
+                                        }
+                                    </p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-check-circle text-success me-1"></i>Connected on @connection.CreatedAt.ToString("MMM dd, yyyy")
+                                    </small>
+                                </div>
+                                @if (otherUser != null)
+                                {
+                                    <div class="col-md-2 text-end">
+                                        <a href="@Url.Action("View", "Profile", new { id = otherUser.Id })" class="btn btn-sm btn-outline-primary me-2">
+                                            <i class="fas fa-eye me-1"></i>View Profile
+                                        </a>
+                                        <a href="@Url.Action("Conversation", "Inbox", new { userId = otherUser.Id })" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-envelope me-1"></i>Message
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-user-check fa-3x mb-3"></i>
+                    <p class="mb-0">No accepted connections yet.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            var token = $('input[name="__RequestVerificationToken"]').val() || '@Html.AntiForgeryToken()';
+            
+            // Check URL parameter to switch to accepted tab if needed
+            var urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tab') === 'accepted') {
+                $('#accepted-tab').tab('show');
+            }
+
+            // Accept button
+            $('.accept-btn').on('click', function() {
+                var requestId = $(this).data('request-id');
+                var btn = $(this);
+                
+                if (!confirm('Accept this connect request?')) return;
+
+                $.ajax({
+                    url: '@Url.Action("Accept", "Connect")',
+                    type: 'POST',
+                    data: {
+                        requestId: requestId,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Remove the card immediately for better UX
+                            btn.closest('.card').fadeOut(300, function() {
+                                // Reload page to show updated data and move to accepted connections
+                                window.location.href = '@Url.Action("Requests", "Connect")?tab=accepted&t=' + new Date().getTime();
+                            });
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        var errorMessage = 'An error occurred while accepting the request.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        alert(errorMessage);
+                    }
+                });
+            });
+
+            // Decline button
+            $('.decline-btn').on('click', function() {
+                var requestId = $(this).data('request-id');
+                
+                if (!confirm('Decline this connect request?')) return;
+
+                $.ajax({
+                    url: '@Url.Action("Decline", "Connect")',
+                    type: 'POST',
+                    data: {
+                        requestId: requestId,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.message);
+                            // Force a hard reload to ensure fresh data
+                            window.location.href = window.location.href.split('?')[0] + '?t=' + new Date().getTime();
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        var errorMessage = 'An error occurred while declining the request.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        alert(errorMessage);
+                    }
+                });
+            });
+        });
+    </script>
+}
+

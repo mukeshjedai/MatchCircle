@@ -1,0 +1,565 @@
+@model List<testapp1.Models.ProfilePhoto>
+@{
+    ViewData["Title"] = "My Photo Album";
+    var maxPhotos = ViewBag.MaxPhotos as int? ?? 10;
+    var currentPhotoCount = Model?.Count ?? 0;
+}
+
+<style>
+    .photo-album-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .photo-album-header {
+        background: #fff;
+        border-bottom: 2px solid #e0e0e0;
+        padding: 20px 0;
+        margin-bottom: 20px;
+    }
+    .photo-upload-area {
+        border: 2px dashed #d32f2f;
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        background: #fff3e0;
+        margin-bottom: 30px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        user-select: none;
+        min-height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .photo-upload-area:hover {
+        background: #ffe0b2;
+        border-color: #b71c1c;
+    }
+    .photo-upload-area.dragover {
+        background: #ffcc80;
+        border-color: #d32f2f;
+    }
+    .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .photo-item {
+        position: relative;
+        aspect-ratio: 3/4;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #f5f5f5;
+        cursor: move;
+    }
+    .photo-item.primary {
+        border-color: #d32f2f;
+        border-width: 3px;
+    }
+    .photo-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .photo-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .photo-item:hover .photo-overlay {
+        opacity: 1;
+    }
+    .photo-actions {
+        display: flex;
+        gap: 10px;
+    }
+    .photo-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: #d32f2f;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    .photo-status-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    .status-pending {
+        background: #ff9800;
+        color: white;
+    }
+    .status-approved {
+        background: #4caf50;
+        color: white;
+    }
+    .status-rejected {
+        background: #f44336;
+        color: white;
+    }
+    .btn-photo-action {
+        background: white;
+        color: #333;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    .btn-photo-action:hover {
+        background: #d32f2f;
+        color: white;
+    }
+    .btn-delete {
+        background: #f44336;
+        color: white;
+    }
+    .btn-delete:hover {
+        background: #d32f2f;
+    }
+    .upload-progress {
+        display: none;
+        margin-top: 20px;
+    }
+    .progress-bar {
+        width: 100%;
+        height: 30px;
+        background: #e0e0e0;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    .progress-fill {
+        height: 100%;
+        background: #d32f2f;
+        width: 0%;
+        transition: width 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+    }
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+    .empty-state i {
+        font-size: 64px;
+        color: #ccc;
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="photo-album-container">
+    <div class="photo-album-header">
+        <h2>My Photo Album</h2>
+        <p class="text-muted">Upload and manage your photos (@currentPhotoCount / @maxPhotos photos)</p>
+    </div>
+
+    <div id="alertContainer"></div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-error">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <!-- Upload Area -->
+    @if (currentPhotoCount < maxPhotos)
+    {
+        <label for="fileInput" class="photo-upload-area" id="uploadArea" style="display: block; position: relative; cursor: pointer;">
+            <input type="file" id="fileInput" multiple accept="image/*" style="position: absolute; width: 0; height: 0; opacity: 0; overflow: hidden;">
+            <div style="pointer-events: none;">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #d32f2f; margin-bottom: 15px;"></i>
+                <h4>Click or drag photos here to upload</h4>
+                <p class="text-muted">You can upload up to @(maxPhotos - currentPhotoCount) more photo(s)</p>
+                <p class="text-muted" style="font-size: 12px;">Supported formats: JPG, PNG, GIF, WEBP (Max 5MB per photo)</p>
+            </div>
+        </label>
+
+        <div class="upload-progress" id="uploadProgress">
+            <p>Uploading photos...</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-error">
+            You have reached the maximum limit of @maxPhotos photos. Please delete a photo to upload a new one.
+        </div>
+    }
+
+    <!-- Existing Photos Section -->
+    @if (Model != null && Model.Any())
+    {
+        <div style="margin-top: 40px;">
+            <h3 class="mb-3" style="color: #333; font-weight: 600;">
+                <i class="fas fa-images me-2"></i>Your Photos (@Model.Count)
+            </h3>
+            <div class="photo-grid" id="photoGrid">
+                @foreach (var photo in Model)
+                {
+                    <div class="photo-item @(photo.IsPrimary ? "primary" : "")" data-photo-id="@photo.Id">
+                        @if (photo.IsPrimary)
+                        {
+                            <span class="photo-badge">
+                                <i class="fas fa-user-circle me-1"></i>Profile Picture
+                            </span>
+                        }
+                        <span class="photo-status-badge status-@photo.Status.ToLower()">@photo.Status</span>
+                        <img src="@photo.ImageUrl?v=@photo.Id" alt="Photo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'250\'%3E%3Crect fill=\'%23ddd\' width=\'200\' height=\'250\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'14\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3EImage not found%3C/text%3E%3C/svg%3E';">
+                        <div class="photo-overlay">
+                            <div class="photo-actions">
+                                @if (!photo.IsPrimary)
+                                {
+                                    <button class="btn-photo-action" data-action="set-primary" data-photo-id="@photo.Id">
+                                        <i class="fas fa-user-circle me-1"></i>Set as Profile Picture
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn-photo-action" style="background: #4caf50; color: white;" disabled>
+                                        <i class="fas fa-check-circle me-1"></i>Profile Picture
+                                    </button>
+                                }
+                                <button class="btn-photo-action btn-delete" data-action="delete" data-photo-id="@photo.Id">
+                                    <i class="fas fa-trash me-1"></i>Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (currentPhotoCount == 0)
+    {
+        <div class="empty-state" style="margin-top: 40px;">
+            <i class="fas fa-images"></i>
+            <h3>No photos yet</h3>
+            <p>Upload your first photo to get started!</p>
+        </div>
+    }
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Get file input element
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+
+        // File input change handler
+        if (fileInput) {
+            $(fileInput).on('change', function(e) {
+                e.stopPropagation();
+                if (this.files && this.files.length > 0) {
+                    handleFiles(this.files);
+                }
+            });
+        }
+
+        // Drag and drop
+        if (uploadArea) {
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadArea.classList.remove('dragover');
+                handleFiles(e.dataTransfer.files);
+            });
+        }
+
+        // Update UI after setting primary photo
+        function updatePrimaryPhotoUI(primaryPhotoId) {
+            // Remove primary class from all photos
+            $('.photo-item').removeClass('primary');
+            $('.photo-badge').remove();
+            
+            // Add primary class and badge to the selected photo
+            const primaryPhoto = $(`.photo-item[data-photo-id="${primaryPhotoId}"]`);
+            primaryPhoto.addClass('primary');
+            primaryPhoto.prepend('<span class="photo-badge"><i class="fas fa-user-circle me-1"></i>Profile Picture</span>');
+            
+            // Update button text
+            $('.btn-photo-action[data-action="set-primary"]').each(function() {
+                if ($(this).data('photo-id') == primaryPhotoId) {
+                    $(this).html('<i class="fas fa-check-circle me-1"></i>Profile Picture')
+                           .css({background: '#4caf50', color: 'white'})
+                           .prop('disabled', true);
+                } else {
+                    $(this).html('<i class="fas fa-user-circle me-1"></i>Set as Profile Picture')
+                           .css({background: 'white', color: '#333'})
+                           .prop('disabled', false);
+                }
+            });
+        }
+
+        // Initialize sortable for photo reordering
+        const photoGrid = document.getElementById('photoGrid');
+        if (photoGrid) {
+            // Stop click propagation from photo grid to prevent conflicts
+            $(photoGrid).on('click', function(e) {
+                e.stopPropagation();
+            });
+            
+            // Handle photo action button clicks with event delegation
+            $(photoGrid).on('click', '.btn-photo-action', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                const action = $(this).data('action');
+                const photoId = $(this).data('photo-id');
+                
+                if (action === 'delete') {
+                    deletePhoto(photoId);
+                } else if (action === 'set-primary') {
+                    setPrimary(photoId);
+                }
+            });
+            
+            new Sortable(photoGrid, {
+                animation: 150,
+                onEnd: function(evt) {
+                    const photoIds = Array.from(photoGrid.children).map(function(item) {
+                        return parseInt(item.getAttribute('data-photo-id'));
+                    });
+                    reorderPhotos(photoIds);
+                }
+            });
+        }
+    });
+
+    function handleFiles(files) {
+        if (files.length === 0) return;
+
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files', files[i]);
+        }
+
+        $('#uploadProgress').show();
+        $('#progressFill').css('width', '0%').text('0%');
+
+        $.ajax({
+            url: '@Url.Action("Upload", "PhotoAlbum")',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhr: function() {
+                const xhr = new window.XMLHttpRequest();
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        $('#progressFill').css('width', percentComplete + '%').text(Math.round(percentComplete) + '%');
+                    }
+                }, false);
+                return xhr;
+            },
+            success: function(response) {
+                $('#uploadProgress').hide();
+                $('#progressFill').css('width', '0%').text('0%');
+                $('#fileInput').val('');
+
+                // Handle both string and object responses
+                if (typeof response === 'string') {
+                    try {
+                        response = JSON.parse(response);
+                    } catch (e) {
+                        showAlert('error', 'Invalid response from server.');
+                        return;
+                    }
+                }
+
+                if (response && response.success) {
+                    showAlert('success', response.message);
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('error', response && response.message ? response.message : 'Upload failed.');
+                }
+            },
+            error: function(xhr) {
+                $('#uploadProgress').hide();
+                $('#progressFill').css('width', '0%').text('0%');
+                let errorMessage = 'An error occurred while uploading photos.';
+                
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        const errorResponse = JSON.parse(xhr.responseText);
+                        if (errorResponse.message) {
+                            errorMessage = errorResponse.message;
+                        }
+                    } catch (e) {
+                        // Use default error message
+                    }
+                }
+                
+                showAlert('error', errorMessage);
+            }
+        });
+    }
+
+    function deletePhoto(photoId) {
+        if (!confirm('Are you sure you want to delete this photo?')) {
+            return;
+        }
+
+        $.ajax({
+            url: '@Url.Action("Delete", "PhotoAlbum")',
+            type: 'POST',
+            data: {
+                id: photoId
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', response.message);
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('error', response.message);
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'An error occurred while deleting the photo.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                showAlert('error', errorMessage);
+            }
+        });
+    }
+
+    function setPrimary(photoId) {
+        $.ajax({
+            url: '@Url.Action("SetPrimary", "PhotoAlbum")',
+            type: 'POST',
+            data: {
+                id: photoId
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', response.message + ' The profile page will update when you visit it.');
+                    // Update UI immediately without reload
+                    if (typeof updatePrimaryPhotoUI === 'function') {
+                        updatePrimaryPhotoUI(photoId);
+                    } else {
+                        // Fallback to reload if function not available
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1500);
+                    }
+                } else {
+                    showAlert('error', response.message);
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'An error occurred while setting profile picture.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                showAlert('error', errorMessage);
+            }
+        });
+    }
+
+    function reorderPhotos(photoIds) {
+        $.ajax({
+            url: '@Url.Action("Reorder", "PhotoAlbum")',
+            type: 'POST',
+            data: {
+                photoIds: photoIds
+            },
+            success: function(response) {
+                if (response.success) {
+                    showAlert('success', response.message);
+                } else {
+                    showAlert('error', response.message);
+                    location.reload(); // Reload to reset order on error
+                }
+            },
+            error: function() {
+                showAlert('error', 'An error occurred while reordering photos.');
+                location.reload(); // Reload to reset order on error
+            }
+        });
+    }
+
+    function showAlert(type, message) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+        const alertHtml = `<div class="alert ${alertClass}">${message}</div>`;
+        $('#alertContainer').html(alertHtml);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(function() {
+            $('#alertContainer').fadeOut(function() {
+                $(this).html('').show();
+            });
+        }, 5000);
+    }
+</script>
+

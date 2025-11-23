@@ -1,0 +1,321 @@
+@model testapp1.Models.UserProfile
+@{
+    ViewData["Title"] = "Edit Profile";
+    var editSection = ViewBag.Section as string ?? "about";
+    var user = ViewBag.User as testapp1.Models.User;
+}
+
+<style>
+    .edit-section {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        margin-bottom: 20px;
+        padding: 20px;
+    }
+    .section-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+    .section-tab {
+        padding: 10px 20px;
+        background: #f5f5f5;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        text-decoration: none;
+        color: #666;
+    }
+    .section-tab.active {
+        background: #fff;
+        color: #d32f2f;
+        border-bottom-color: #d32f2f;
+        font-weight: bold;
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-label {
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 5px;
+    }
+</style>
+
+<div class="container mt-4">
+    <h2>Edit Profile</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+
+    <div class="section-tabs">
+        <a href="@Url.Action("Edit", new { section = "about" })" class="section-tab @(editSection == "about" ? "active" : "")">About Myself</a>
+        <a href="@Url.Action("Edit", new { section = "basics" })" class="section-tab @(editSection == "basics" ? "active" : "")">Basics & Lifestyle</a>
+        <a href="@Url.Action("Edit", new { section = "religious" })" class="section-tab @(editSection == "religious" ? "active" : "")">Religious Background</a>
+        <a href="@Url.Action("Edit", new { section = "family" })" class="section-tab @(editSection == "family" ? "active" : "")">Family Details</a>
+        <a href="@Url.Action("Edit", new { section = "education" })" class="section-tab @(editSection == "education" ? "active" : "")">Education & Career</a>
+        <a href="@Url.Action("Edit", new { section = "location" })" class="section-tab @(editSection == "location" ? "active" : "")">Location</a>
+        <a href="@Url.Action("Edit", new { section = "contact" })" class="section-tab @(editSection == "contact" ? "active" : "")">Contact Details</a>
+    </div>
+
+    <form method="post" asp-action="Edit">
+        <input type="hidden" asp-for="UserId" />
+        <input type="hidden" name="section" value="@editSection" />
+        @Html.AntiForgeryToken()
+
+        <div class="edit-section">
+            @if (editSection == "about")
+            {
+                <h4>About Myself</h4>
+                <div class="form-group">
+                    <label class="form-label">Personal Description</label>
+                    <textarea asp-for="AboutMe" class="form-control" rows="8" placeholder="Describe yourself, your personality, family details, career, and partner expectations..."></textarea>
+                    <span asp-validation-for="AboutMe" class="text-danger"></span>
+                </div>
+            }
+            else if (editSection == "basics")
+            {
+                <h4>Basics & Lifestyle</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Date of Birth</label>
+                            <input asp-for="DateOfBirth" class="form-control" type="date" />
+                            <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Marital Status</label>
+                            <select asp-for="MaritalStatus" class="form-select">
+                                <option value="">Select</option>
+                                <option value="Never Married">Never Married</option>
+                                <option value="Divorced">Divorced</option>
+                                <option value="Widowed">Widowed</option>
+                                <option value="Awaiting Divorce">Awaiting Divorce</option>
+                            </select>
+                            <span asp-validation-for="MaritalStatus" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Height (cm)</label>
+                            <input asp-for="HeightCm" class="form-control" type="number" min="100" max="250" placeholder="e.g., 170" />
+                            <small class="text-muted">Enter height in centimeters</small>
+                            <span asp-validation-for="HeightCm" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Diet</label>
+                            <select asp-for="Diet" class="form-select">
+                                <option value="">Select</option>
+                                <option value="Vegetarian">Vegetarian</option>
+                                <option value="Non-Veg">Non-Veg</option>
+                                <option value="Vegan">Vegan</option>
+                                <option value="Jain">Jain</option>
+                            </select>
+                            <span asp-validation-for="Diet" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (editSection == "religious")
+            {
+                <h4>Religious Background</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Religion</label>
+                            <input asp-for="Religion" class="form-control" placeholder="e.g., Hindu, Muslim, Christian" />
+                            <span asp-validation-for="Religion" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Caste / Community</label>
+                            <input asp-for="Caste" class="form-control" placeholder="e.g., Brahmin, Yadav" />
+                            <span asp-validation-for="Caste" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Sub Caste</label>
+                            <input asp-for="SubCaste" class="form-control" />
+                            <span asp-validation-for="SubCaste" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Mother Tongue</label>
+                            <input asp-for="MotherTongue" class="form-control" placeholder="e.g., Hindi, English" />
+                            <span asp-validation-for="MotherTongue" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Community</label>
+                    <input asp-for="Community" class="form-control" />
+                    <span asp-validation-for="Community" class="text-danger"></span>
+                </div>
+            }
+            else if (editSection == "family")
+            {
+                <h4>Family Details</h4>
+                <div class="form-group">
+                    <label class="form-label">Family Information</label>
+                    <textarea asp-for="FamilyDetails" class="form-control" rows="6" placeholder="Describe your family background, parents' details, siblings, etc."></textarea>
+                    <span asp-validation-for="FamilyDetails" class="text-danger"></span>
+                </div>
+            }
+            else if (editSection == "education")
+            {
+                <h4>Education & Career</h4>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Highest Qualification</label>
+                            <input asp-for="EducationLevel" class="form-control" placeholder="e.g., B.E. / B.Tech - Engineering" />
+                            <span asp-validation-for="EducationLevel" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">College / University</label>
+                            <input asp-for="EducationField" class="form-control" placeholder="e.g., College name" />
+                            <span asp-validation-for="EducationField" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Occupation</label>
+                            <input asp-for="Occupation" class="form-control" placeholder="e.g., Software Engineer" />
+                            <span asp-validation-for="Occupation" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Employer Name</label>
+                            <input asp-for="Employer" class="form-control" placeholder="Company name" />
+                            <span asp-validation-for="Employer" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Income Currency</label>
+                            <select asp-for="AnnualIncomeCurrency" class="form-select">
+                                <option value="">Select</option>
+                                <option value="USD">USD</option>
+                                <option value="AUD">AUD</option>
+                                <option value="INR">INR</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Annual Income (Min)</label>
+                            <input asp-for="AnnualIncomeMin" class="form-control" type="number" step="0.01" placeholder="Min" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Annual Income (Max)</label>
+                            <input asp-for="AnnualIncomeMax" class="form-control" type="number" step="0.01" placeholder="Max" />
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (editSection == "location")
+            {
+                <h4>Location</h4>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Country</label>
+                            <input asp-for="Country" class="form-control" placeholder="e.g., India, Australia" />
+                            <span asp-validation-for="Country" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">State</label>
+                            <input asp-for="State" class="form-control" placeholder="e.g., Maharashtra, New South Wales" />
+                            <span asp-validation-for="State" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">City</label>
+                            <input asp-for="City" class="form-control" placeholder="e.g., Mumbai, Sydney" />
+                            <span asp-validation-for="City" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Residency Status</label>
+                            <select asp-for="ResidenceStatus" class="form-select">
+                                <option value="">Select</option>
+                                <option value="Citizen">Citizen</option>
+                                <option value="Permanent Resident">Permanent Resident</option>
+                                <option value="Work Visa">Work Visa</option>
+                                <option value="Student Visa">Student Visa</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Citizenship</label>
+                            <input asp-for="Citizenship" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (editSection == "contact")
+            {
+                <h4>Contact Details</h4>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Phone Country Code</label>
+                            <input name="User.PhoneCountryCode" value="@(user?.PhoneCountryCode ?? "")" class="form-control" placeholder="+91, +61" />
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label class="form-label">Phone Number</label>
+                            <input name="User.PhoneNumber" value="@(user?.PhoneNumber ?? "")" class="form-control" placeholder="Phone number" />
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-info mt-3">
+                    <small>Your contact details will only be visible to premium members.</small>
+                </div>
+            }
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a href="@Url.Action("Index")" class="btn btn-secondary">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+

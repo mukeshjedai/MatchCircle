@@ -1,0 +1,461 @@
+@model testapp1.Models.UserProfile
+@{
+    ViewData["Title"] = "View Profile";
+    var photos = ViewBag.Photos as List<testapp1.Models.ProfilePhoto> ?? new List<testapp1.Models.ProfilePhoto>();
+    var age = ViewBag.Age as int? ?? 0;
+    var height = ViewBag.Height as string ?? "Not Specified";
+    var isConnected = ViewBag.IsConnected as bool? ?? false;
+    var hasPendingRequest = ViewBag.HasPendingRequest as bool? ?? false;
+    var pendingRequestSent = ViewBag.PendingRequestSent as bool? ?? false;
+}
+
+@if (Model != null)
+{
+    <style>
+        .profile-header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 30px;
+        }
+        .profile-photo-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .profile-photo-item {
+            position: relative;
+            aspect-ratio: 3/4;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .profile-photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .profile-photo-item.primary::after {
+            content: "Profile Picture";
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(211, 47, 47, 0.9);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .info-section {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info-section h5 {
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .info-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            width: 200px;
+            font-weight: 600;
+            color: #666;
+        }
+        .info-value {
+            flex: 1;
+            color: #333;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
+
+    <div class="profile-header-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-3 text-center">
+                    @if (photos.Any(p => p.IsPrimary))
+                    {
+                        var primaryPhoto = photos.First(p => p.IsPrimary);
+                        <img src="@primaryPhoto.ImageUrl?v=@primaryPhoto.Id" 
+                             alt="@Model.FullName" 
+                             class="rounded-circle mb-3" 
+                             style="width: 180px; height: 180px; object-fit: cover; border: 5px solid white; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'180\' height=\'180\'%3E%3Ccircle fill=\'%23fff\' cx=\'90\' cy=\'90\' r=\'90\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'60\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3E%3C/text%3E%3C/svg%3E';" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-white d-flex align-items-center justify-content-center mb-3" 
+                             style="width: 180px; height: 180px; margin: 0 auto; border: 5px solid white;">
+                            <i class="fas fa-user fa-5x text-muted"></i>
+                        </div>
+                    }
+                </div>
+                <div class="col-md-9">
+                    <div class="d-flex align-items-center gap-3 mb-2">
+                        <h2 class="mb-0">@Model.FullName</h2>
+                        @if (isConnected)
+                        {
+                            <span class="badge bg-success" style="font-size: 14px; padding: 8px 12px;">
+                                <i class="fas fa-check-circle me-1"></i>Connected
+                            </span>
+                        }
+                        else if (hasPendingRequest)
+                        {
+                            <span class="badge bg-warning text-dark" style="font-size: 14px; padding: 8px 12px;">
+                                <i class="fas fa-clock me-1"></i>@(pendingRequestSent ? "Request Sent" : "Request Pending")
+                            </span>
+                        }
+                    </div>
+                    <p class="mb-1" style="font-size: 18px; opacity: 0.9;">
+                        <i class="fas fa-birthday-cake me-2"></i>@age years
+                        @if (!string.IsNullOrEmpty(height) && height != "Not Specified")
+                        {
+                            <text> • <i class="fas fa-ruler-vertical me-2"></i>@height</text>
+                        }
+                    </p>
+                    @if (!string.IsNullOrEmpty(Model.City))
+                    {
+                        <p class="mb-2" style="opacity: 0.9;">
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            @Model.City
+                            @if (!string.IsNullOrEmpty(Model.State))
+                            {
+                                <text>, @Model.State</text>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Country))
+                            {
+                                <text>, @Model.Country</text>
+                            }
+                        </p>
+                    }
+                    @{
+                        var currentUserIdStr = Context.Session.GetString("UserId");
+                        var currentUserId = 0L;
+                        if (!string.IsNullOrEmpty(currentUserIdStr))
+                        {
+                            long.TryParse(currentUserIdStr, out currentUserId);
+                        }
+                    }
+                    @if (!string.IsNullOrEmpty(currentUserIdStr) && currentUserId != Model.UserId)
+                    {
+                        <div class="action-buttons">
+                            @if (isConnected)
+                            {
+                                <a href="@Url.Action("Conversation", "Inbox", new { userId = Model.UserId })" class="btn btn-light btn-lg">
+                                    <i class="fas fa-envelope me-2"></i>Send Message
+                                </a>
+                                <a href="@Url.Action("Requests", "Connect")" class="btn btn-outline-light btn-lg">
+                                    <i class="fas fa-user-friends me-2"></i>View Connection
+                                </a>
+                            }
+                            else if (hasPendingRequest && !pendingRequestSent)
+                            {
+                                <a href="@Url.Action("Requests", "Connect")" class="btn btn-light btn-lg">
+                                    <i class="fas fa-user-check me-2"></i>Respond to Request
+                                </a>
+                                <a href="@Url.Action("Conversation", "Inbox", new { userId = Model.UserId })" class="btn btn-outline-light btn-lg">
+                                    <i class="fas fa-envelope me-2"></i>Send Message
+                                </a>
+                            }
+                            else if (hasPendingRequest && pendingRequestSent)
+                            {
+                                <span class="btn btn-light btn-lg" style="cursor: default; opacity: 0.7;">
+                                    <i class="fas fa-clock me-2"></i>Request Pending
+                                </span>
+                                <a href="@Url.Action("Requests", "Connect")" class="btn btn-outline-light btn-lg">
+                                    <i class="fas fa-user-friends me-2"></i>View Requests
+                                </a>
+                            }
+                            else
+                            {
+                                <a href="@Url.Action("Send", "Connect", new { userId = Model.UserId })" class="btn btn-light btn-lg">
+                                    <i class="fas fa-user-plus me-2"></i>Send Connect Request
+                                </a>
+                                <a href="@Url.Action("Conversation", "Inbox", new { userId = Model.UserId })" class="btn btn-outline-light btn-lg">
+                                    <i class="fas fa-envelope me-2"></i>Send Message
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- Basic Information -->
+                <div class="info-section">
+                    <h5><i class="fas fa-user me-2"></i>Basic Information</h5>
+                    <div class="info-row">
+                        <div class="info-label">Gender</div>
+                        <div class="info-value">@Model.Gender</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Date of Birth</div>
+                        <div class="info-value">@Model.DateOfBirth.ToString("MMMM dd, yyyy")</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Age</div>
+                        <div class="info-value">@age years</div>
+                    </div>
+                    @if (Model.HeightCm.HasValue)
+                    {
+                        <div class="info-row">
+                            <div class="info-label">Height</div>
+                            <div class="info-value">@height</div>
+                        </div>
+                    }
+                    <div class="info-row">
+                        <div class="info-label">Marital Status</div>
+                        <div class="info-value">@Model.MaritalStatus</div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.HaveChildren) && Model.HaveChildren != "no")
+                    {
+                        <div class="info-row">
+                            <div class="info-label">Children</div>
+                            <div class="info-value">@Model.HaveChildren</div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Religious & Cultural Background -->
+                @if (!string.IsNullOrEmpty(Model.Religion) || !string.IsNullOrEmpty(Model.Caste) || !string.IsNullOrEmpty(Model.MotherTongue))
+                {
+                    <div class="info-section">
+                        <h5><i class="fas fa-praying-hands me-2"></i>Religious & Cultural Background</h5>
+                        @if (!string.IsNullOrEmpty(Model.Religion))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Religion</div>
+                                <div class="info-value">@Model.Religion</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Caste))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Caste</div>
+                                <div class="info-value">@Model.Caste</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.SubCaste))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Sub Caste</div>
+                                <div class="info-value">@Model.SubCaste</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.MotherTongue))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Mother Tongue</div>
+                                <div class="info-value">@Model.MotherTongue</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Community))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Community</div>
+                                <div class="info-value">@Model.Community</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Location & Citizenship -->
+                @if (!string.IsNullOrEmpty(Model.City) || !string.IsNullOrEmpty(Model.Country) || !string.IsNullOrEmpty(Model.Citizenship))
+                {
+                    <div class="info-section">
+                        <h5><i class="fas fa-map-marker-alt me-2"></i>Location & Citizenship</h5>
+                        @if (!string.IsNullOrEmpty(Model.City))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">City</div>
+                                <div class="info-value">@Model.City</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.State))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">State</div>
+                                <div class="info-value">@Model.State</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Country))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Country</div>
+                                <div class="info-value">@Model.Country</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Citizenship))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Citizenship</div>
+                                <div class="info-value">@Model.Citizenship</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.ResidenceStatus))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Residence Status</div>
+                                <div class="info-value">@Model.ResidenceStatus</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Education & Career -->
+                @if (!string.IsNullOrEmpty(Model.EducationLevel) || !string.IsNullOrEmpty(Model.Occupation) || !string.IsNullOrEmpty(Model.Employer))
+                {
+                    <div class="info-section">
+                        <h5><i class="fas fa-briefcase me-2"></i>Education & Career</h5>
+                        @if (!string.IsNullOrEmpty(Model.EducationLevel))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Education Level</div>
+                                <div class="info-value">
+                                    @Model.EducationLevel
+                                    @if (!string.IsNullOrEmpty(Model.EducationField))
+                                    {
+                                        <text> - @Model.EducationField</text>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Occupation))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Occupation</div>
+                                <div class="info-value">@Model.Occupation</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Employer))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Employer</div>
+                                <div class="info-value">@Model.Employer</div>
+                            </div>
+                        }
+                        @if (Model.AnnualIncomeMin.HasValue || Model.AnnualIncomeMax.HasValue)
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Annual Income</div>
+                                <div class="info-value">
+                                    @if (Model.AnnualIncomeMin.HasValue && Model.AnnualIncomeMax.HasValue)
+                                    {
+                                        <text>@Model.AnnualIncomeCurrency @Model.AnnualIncomeMin.Value.ToString("N0") - @Model.AnnualIncomeMax.Value.ToString("N0")</text>
+                                    }
+                                    else if (Model.AnnualIncomeMin.HasValue)
+                                    {
+                                        <text>@Model.AnnualIncomeCurrency @Model.AnnualIncomeMin.Value.ToString("N0")+</text>
+                                    }
+                                    else if (Model.AnnualIncomeMax.HasValue)
+                                    {
+                                        <text>Up to @Model.AnnualIncomeCurrency @Model.AnnualIncomeMax.Value.ToString("N0")</text>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Lifestyle -->
+                @if (!string.IsNullOrEmpty(Model.Diet) || !string.IsNullOrEmpty(Model.Smoking) || !string.IsNullOrEmpty(Model.Drinking))
+                {
+                    <div class="info-section">
+                        <h5><i class="fas fa-heart me-2"></i>Lifestyle</h5>
+                        @if (!string.IsNullOrEmpty(Model.Diet))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Diet</div>
+                                <div class="info-value">@Model.Diet</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Smoking))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Smoking</div>
+                                <div class="info-value">@Model.Smoking</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Drinking))
+                        {
+                            <div class="info-row">
+                                <div class="info-label">Drinking</div>
+                                <div class="info-value">@Model.Drinking</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- About Me -->
+                @if (!string.IsNullOrEmpty(Model.AboutMe))
+                {
+                    <div class="info-section">
+                        <h5><i class="fas fa-user-circle me-2"></i>About Me</h5>
+                        <p style="line-height: 1.8; color: #555;">@Model.AboutMe</p>
+                    </div>
+                }
+
+                <!-- Family Details -->
+                @if (!string.IsNullOrEmpty(Model.FamilyDetails))
+                {
+                    <div class="info-section">
+                        <h5><i class="fas fa-users me-2"></i>Family Details</h5>
+                        <p style="line-height: 1.8; color: #555;">@Model.FamilyDetails</p>
+                    </div>
+                }
+
+                <!-- Photo Gallery -->
+                @if (photos.Any())
+                {
+                    <div class="info-section">
+                        <h5><i class="fas fa-images me-2"></i>Photo Gallery (@photos.Count)</h5>
+                        <div class="profile-photo-gallery">
+                            @foreach (var photo in photos)
+                            {
+                                <div class="profile-photo-item @(photo.IsPrimary ? "primary" : "")" style="position: relative;">
+                                    @if (photo.Status.ToLower() == "pending")
+                                    {
+                                        <span style="position: absolute; top: 5px; right: 5px; background: rgba(255, 152, 0, 0.9); color: white; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; z-index: 10;">
+                                            Pending
+                                        </span>
+                                    }
+                                    <img src="@photo.ImageUrl?v=@photo.Id" 
+                                         alt="Photo" 
+                                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'200\'%3E%3Crect fill=\'%23ddd\' width=\'150\' height=\'200\'/%3E%3Ctext fill=\'%23999\' font-family=\'sans-serif\' font-size=\'14\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3EImage not found%3C/text%3E%3C/svg%3E';" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container mt-5">
+        <div class="alert alert-warning">
+            Profile not found.
+        </div>
+    </div>
+}

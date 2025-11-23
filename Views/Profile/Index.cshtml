@@ -1,0 +1,524 @@
+@model testapp1.Models.UserProfile
+@{
+    ViewData["Title"] = "My Profile";
+    var photos = ViewBag.Photos as List<testapp1.Models.ProfilePhoto> ?? new List<testapp1.Models.ProfilePhoto>();
+    var partnerPreference = ViewBag.PartnerPreference as testapp1.Models.PartnerPreference;
+    var age = ViewBag.Age as int? ?? 0;
+    var height = ViewBag.Height as string ?? "Not Specified";
+}
+
+@if (Model != null)
+{
+    <style>
+        .profile-header {
+            background: #fff;
+            border-bottom: 2px solid #e0e0e0;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        .profile-nav {
+            background: #f8f9fa;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .profile-nav a {
+            color: #666;
+            text-decoration: none;
+            padding: 10px 15px;
+            display: inline-block;
+        }
+        .profile-nav a.active {
+            color: #d32f2f;
+            font-weight: bold;
+            border-bottom: 2px solid #d32f2f;
+        }
+        .profile-section {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+        .profile-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .profile-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        .profile-info-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .profile-info-label {
+            width: 200px;
+            font-weight: 500;
+            color: #666;
+        }
+        .profile-info-value {
+            flex: 1;
+            color: #333;
+        }
+        .photo-upload-box {
+            width: 200px;
+            height: 250px;
+            border: 2px dashed #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f9f9f9;
+            cursor: pointer;
+            margin-right: 20px;
+        }
+        .photo-upload-box:hover {
+            border-color: #d32f2f;
+            background: #fff;
+        }
+        .btn-edit {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-edit:hover {
+            background: #b71c1c;
+        }
+        .hobby-tag {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 5px 12px;
+            margin: 5px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+        .basic-info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+
+    <!-- Profile Navigation -->
+    <div class="profile-nav">
+        <div class="container">
+            <a href="@Url.Action("Index", "Home")">Dashboard</a>
+            <a href="@Url.Action("Index", "Profile")" class="active">My Profile</a>
+            <a href="@Url.Action("Index", "PhotoAlbum")">My Photos</a>
+            <a href="@Url.Action("EditPartnerPreferences", "Profile")">Partner Preferences</a>
+            <a href="#">Settings</a>
+            <a href="#">More</a>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        @if (TempData["WelcomeMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <strong>Welcome, @Model.FullName!</strong> @TempData["WelcomeMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="d-flex align-items-start">
+                <div class="photo-upload-box" style="position: relative;">
+                    @{
+                        var primaryPhoto = photos?.FirstOrDefault(p => p.IsPrimary);
+                    }
+                    @if (primaryPhoto != null && !string.IsNullOrEmpty(primaryPhoto.ImageUrl))
+                    {
+                        <a href="@Url.Action("Index", "PhotoAlbum")" style="display: block; width: 100%; height: 100%; text-decoration: none;">
+                            <img src="@primaryPhoto.ImageUrl?v=@primaryPhoto.Id" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                            <div style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                                <i class="fas fa-camera fa-3x text-muted mb-2"></i>
+                                <span class="text-muted">Click here to upload</span>
+                                <small class="text-muted">Photo</small>
+                            </div>
+                        </a>
+                    }
+                    else
+                    {
+                        <a href="@Url.Action("Index", "PhotoAlbum")" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                            <i class="fas fa-camera fa-3x text-muted mb-2"></i>
+                            <span class="text-muted">Click here to upload</span>
+                            <small class="text-muted">Photo</small>
+                        </a>
+                    }
+                </div>
+                <div class="flex-grow-1">
+                    <h2>@Model.FullName <span class="text-muted">(@Model.UserId)</span></h2>
+                    <div class="basic-info-box">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Age / Height:</strong> @age / @height<br />
+                                <strong>Marital Status:</strong> @Model.MaritalStatus<br />
+                                <strong>Religion / Community:</strong> @(Model.Religion ?? "Not Specified")@(string.IsNullOrEmpty(Model.Caste) ? "" : ", " + Model.Caste)
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Location:</strong> @(Model.City ?? "Not Specified")<br />
+                                <strong>Profile managed by:</strong> @(Model.ProfileCreatedBy ?? "Self")<br />
+                                <strong>Mother Tongue:</strong> @(Model.MotherTongue ?? "Not Specified")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Myself Section -->
+        <div class="profile-section">
+            <div class="profile-section-header">
+                <div class="profile-section-title">About Myself</div>
+                <a href="@Url.Action("Edit", new { section = "about" })" class="btn-edit">Edit</a>
+            </div>
+            <p class="text-muted mb-2">Personality, Family Details, Career, Partner Expectations etc.</p>
+            <p>@(string.IsNullOrEmpty(Model.AboutMe) ? "Enter your personal description here..." : Model.AboutMe)</p>
+        </div>
+
+        <!-- Basics & Lifestyle Section -->
+        <div class="profile-section">
+            <div class="profile-section-header">
+                <div class="profile-section-title">Basics & Lifestyle</div>
+                <a href="@Url.Action("Edit", new { section = "basics" })" class="btn-edit">Edit</a>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Age</div>
+                <div class="profile-info-value">@age</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Date of Birth</div>
+                <div class="profile-info-value">@Model.DateOfBirth.ToString("dd-MMM-yyyy")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Marital Status</div>
+                <div class="profile-info-value">@Model.MaritalStatus</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Height</div>
+                <div class="profile-info-value">@height</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Growing up in</div>
+                <div class="profile-info-value">@(Model.Country ?? "Not Specified")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Diet</div>
+                <div class="profile-info-value">@(Model.Diet ?? "Enter Now")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Blood Group</div>
+                <div class="profile-info-value">Enter Now</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Health Information</div>
+                <div class="profile-info-value">Enter Now</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Disability</div>
+                <div class="profile-info-value">None</div>
+            </div>
+        </div>
+
+        <!-- Religious Background Section -->
+        <div class="profile-section">
+            <div class="profile-section-header">
+                <div class="profile-section-title">Religious Background</div>
+                <a href="@Url.Action("Edit", new { section = "religious" })" class="btn-edit">Edit</a>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Religion</div>
+                <div class="profile-info-value">@(Model.Religion ?? "Not Specified")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Community</div>
+                <div class="profile-info-value">@(Model.Caste ?? "Not Specified")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Sub community</div>
+                <div class="profile-info-value">@(Model.SubCaste ?? "Not Specified")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Gothra / Gothram</div>
+                <div class="profile-info-value">Not Specified</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Mother Tongue</div>
+                <div class="profile-info-value">@(Model.MotherTongue ?? "Not Specified")</div>
+            </div>
+        </div>
+
+        <!-- Astro Details Section -->
+        <div class="profile-section">
+            <div class="profile-section-header">
+                <div class="profile-section-title">Astro Details</div>
+                <a href="@Url.Action("Edit", new { section = "basics" })" class="btn-edit">Edit</a>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Manglik/Chovva dosham</div>
+                <div class="profile-info-value">Don't Know</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Date of Birth</div>
+                <div class="profile-info-value">@Model.DateOfBirth.ToString("dd-MMM-yyyy")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Time of Birth</div>
+                <div class="profile-info-value">Enter Now</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">City of Birth</div>
+                <div class="profile-info-value">Enter Now</div>
+            </div>
+        </div>
+
+        <!-- Family Details Section -->
+        <div class="profile-section">
+            <div class="profile-section-header">
+                <div class="profile-section-title">Family details</div>
+                <a href="@Url.Action("Edit", new { section = "family" })" class="btn-edit">Edit</a>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Mother's Details</div>
+                <div class="profile-info-value">Enter Now</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Father's Details</div>
+                <div class="profile-info-value">Enter Now</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Family Location</div>
+                <div class="profile-info-value">@(string.IsNullOrEmpty(Model.City) ? "Enter Now" : $"{Model.City}, {Model.State}, {Model.Country}")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">No. of Siblings</div>
+                <div class="profile-info-value">Enter Now</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">No. of Brothers</div>
+                <div class="profile-info-value">Enter Now</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">No. of Sisters</div>
+                <div class="profile-info-value">Enter Now</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Family Financial Status</div>
+                <div class="profile-info-value">Enter Now</div>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.FamilyDetails))
+            {
+                <div class="mt-3">
+                    <p>@Model.FamilyDetails</p>
+                </div>
+            }
+        </div>
+
+        <!-- Education & Career Section -->
+        <div class="profile-section">
+            <div class="profile-section-header">
+                <div class="profile-section-title">Education & Career</div>
+                <a href="@Url.Action("Edit", new { section = "education" })" class="btn-edit">Edit</a>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Highest Qualification</div>
+                <div class="profile-info-value">@(Model.EducationLevel ?? "Enter Now")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">College(s) / University</div>
+                <div class="profile-info-value">@(Model.EducationField ?? "Enter Now")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Annual Income</div>
+                <div class="profile-info-value">
+                    @if (Model.AnnualIncomeMin.HasValue && Model.AnnualIncomeMax.HasValue)
+                    {
+                        <text>@Model.AnnualIncomeCurrency @Model.AnnualIncomeMin.Value.ToString("N0") to @Model.AnnualIncomeMax.Value.ToString("N0")</text>
+                    }
+                    else
+                    {
+                        <text>Enter Now</text>
+                    }
+                </div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Working With</div>
+                <div class="profile-info-value">@(string.IsNullOrEmpty(Model.Employer) ? "Enter Now" : "Private Company")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Working As</div>
+                <div class="profile-info-value">@(Model.Occupation ?? "Not Specified")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Employer Name</div>
+                <div class="profile-info-value">@(Model.Employer ?? "Enter Now")</div>
+            </div>
+        </div>
+
+        <!-- Location Section -->
+        <div class="profile-section">
+            <div class="profile-section-header">
+                <div class="profile-section-title">Location</div>
+                <a href="@Url.Action("Edit", new { section = "location" })" class="btn-edit">Edit</a>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Current Residence</div>
+                <div class="profile-info-value">@(string.IsNullOrEmpty(Model.City) ? "Enter Now" : $"{Model.City}, {Model.Country}")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">State of Residence</div>
+                <div class="profile-info-value">@(Model.State ?? "Not Specified")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Residency Status</div>
+                <div class="profile-info-value">@(Model.ResidenceStatus ?? "Not Specified")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Zip / Pin code</div>
+                <div class="profile-info-value">Not Specified</div>
+            </div>
+        </div>
+
+        <!-- Hobbies and Interests Section -->
+        <div class="profile-section">
+            <div class="profile-section-header">
+                <div class="profile-section-title">Hobbies and Interests</div>
+                <a href="@Url.Action("Edit", new { section = "about" })" class="btn-edit">Edit</a>
+            </div>
+            <div>
+                <span class="hobby-tag">Writing</span>
+                <span class="hobby-tag">Movies</span>
+                <span class="hobby-tag">Running</span>
+                <span class="hobby-tag">Pets</span>
+                <span class="hobby-tag">News & Politics</span>
+            </div>
+        </div>
+
+        <!-- Partner Preferences Section -->
+        @if (partnerPreference != null)
+        {
+            <div class="profile-section">
+                <div class="profile-section-header">
+                    <div class="profile-section-title">Partner Preferences</div>
+                    <button class="btn-edit">Edit</button>
+                </div>
+                
+                <h5 class="mb-3">Basic Info</h5>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">Age</div>
+                    <div class="profile-info-value">@(partnerPreference.AgeMin?.ToString() ?? "Any") to @(partnerPreference.AgeMax?.ToString() ?? "Any")</div>
+                </div>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">Height</div>
+                    <div class="profile-info-value">
+                        @if (partnerPreference.HeightMinCm.HasValue && partnerPreference.HeightMaxCm.HasValue)
+                        {
+                            var minFeet = partnerPreference.HeightMinCm.Value / 30.48;
+                            var minInches = (minFeet - Math.Floor(minFeet)) * 12;
+                            var maxFeet = partnerPreference.HeightMaxCm.Value / 30.48;
+                            var maxInches = (maxFeet - Math.Floor(maxFeet)) * 12;
+                            <text>@Math.Floor(minFeet)' @Math.Round(minInches)" (@partnerPreference.HeightMinCm cm) to @Math.Floor(maxFeet)' @Math.Round(maxInches)" (@partnerPreference.HeightMaxCm cm)</text>
+                        }
+                        else
+                        {
+                            <text>Open to All</text>
+                        }
+                    </div>
+                </div>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">Religion / Community</div>
+                    <div class="profile-info-value">@(string.IsNullOrEmpty(partnerPreference.ReligionsJson) ? "Open to All" : "See Details")</div>
+                </div>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">Mother Tongue</div>
+                    <div class="profile-info-value">@(string.IsNullOrEmpty(partnerPreference.MotherTonguesJson) ? "Open to All" : "See Details")</div>
+                </div>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">Marital Status</div>
+                    <div class="profile-info-value">@(string.IsNullOrEmpty(partnerPreference.MaritalStatusesJson) ? "Open to All" : "See Details")</div>
+                </div>
+
+                <h5 class="mb-3 mt-4">Location Details</h5>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">Country Living In</div>
+                    <div class="profile-info-value">@(string.IsNullOrEmpty(partnerPreference.CountriesJson) ? "Open to All" : "See Details")</div>
+                </div>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">State Living In</div>
+                    <div class="profile-info-value">Open to All</div>
+                </div>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">City / District</div>
+                    <div class="profile-info-value">Open to All</div>
+                </div>
+
+                <h5 class="mb-3 mt-4">Education & Career</h5>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">Education</div>
+                    <div class="profile-info-value">Open to All</div>
+                </div>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">Working with</div>
+                    <div class="profile-info-value">Open to All</div>
+                </div>
+                <div class="profile-info-row">
+                    <div class="profile-info-label">Annual Income</div>
+                    <div class="profile-info-value">
+                        @if (partnerPreference.IncomeMin.HasValue)
+                        {
+                            <text>@partnerPreference.IncomeCurrency @partnerPreference.IncomeMin.Value.ToString("N0") and above</text>
+                        }
+                        else
+                        {
+                            <text>Open to All</text>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="profile-section">
+                <div class="profile-section-header">
+                    <div class="profile-section-title">Partner Preferences</div>
+                    <a href="@Url.Action("EditPartnerPreferences")" class="btn-edit">Edit</a>
+                </div>
+                <p class="text-muted">No partner preferences set yet. Click Edit to add your preferences.</p>
+            </div>
+        }
+
+        <!-- Contact Details Section -->
+        <div class="profile-section">
+            <div class="profile-section-header">
+                <div class="profile-section-title">My Contact detail</div>
+                <a href="@Url.Action("Edit", new { section = "contact" })" class="btn-edit">Edit</a>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Mobile</div>
+                <div class="profile-info-value">@(Model.User?.PhoneNumber ?? "Not Specified")</div>
+            </div>
+            <div class="profile-info-row">
+                <div class="profile-info-label">Display Option</div>
+                <div class="profile-info-value">Only Premium Members</div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container mt-5">
+        <div class="alert alert-warning">
+            Profile not found. Please complete your registration.
+        </div>
+    </div>
+}

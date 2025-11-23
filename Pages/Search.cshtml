@@ -1,0 +1,99 @@
+@page
+@model SearchModel
+@{
+    ViewData["Title"] = "Search Matches";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5>Search Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get">
+                        <div class="mb-3">
+                            <label class="form-label">Gender</label>
+                            <select name="Gender" class="form-select">
+                                <option value="">Any</option>
+                                <option value="Male" selected="@(Model.Gender == "Male")">Male</option>
+                                <option value="Female" selected="@(Model.Gender == "Female")">Female</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Religion</label>
+                            <input type="text" name="Religion" class="form-control" value="@Model.Religion" placeholder="Any" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">City</label>
+                            <input type="text" name="City" class="form-control" value="@Model.City" placeholder="Any" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Age Range</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="number" name="AgeMin" class="form-control" value="@Model.AgeMin" placeholder="Min" />
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" name="AgeMax" class="form-control" value="@Model.AgeMax" placeholder="Max" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Search</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <h3>Search Results (@Model.Profiles.Count)</h3>
+            <div class="row">
+                @foreach (var profile in Model.Profiles)
+                {
+                    var age = DateTime.UtcNow.Year - profile.DateOfBirth.Year;
+                    if (profile.DateOfBirth.Date > DateTime.UtcNow.AddYears(-age)) age--;
+
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-4">
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                                            <i class="fas fa-user fa-3x text-muted"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-8">
+                                        <h5>@profile.FullName</h5>
+                                        <p class="text-muted mb-1">@age years, @profile.Gender</p>
+                                        @if (!string.IsNullOrEmpty(profile.City))
+                                        {
+                                            <p class="text-muted mb-1"><small>@profile.City</small></p>
+                                        }
+                                        @if (!string.IsNullOrEmpty(profile.Religion))
+                                        {
+                                            <p class="text-muted mb-2"><small>@profile.Religion</small></p>
+                                        }
+                                        <a href="/Profile/View/@profile.UserId" class="btn btn-sm btn-primary">View Profile</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (!Model.Profiles.Any())
+            {
+                <div class="alert alert-info">
+                    No profiles found matching your criteria. Try adjusting your search filters.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
